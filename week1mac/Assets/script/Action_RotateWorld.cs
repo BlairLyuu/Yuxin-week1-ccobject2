@@ -1,12 +1,16 @@
 using UnityEngine;
 using System.Collections;
 using Unity.Cinemachine;
+using UnityEngine.Events; // ★ 必须引用这个，才能用万能接口
 
 public class Action_RotateWorld : MonoBehaviour
 {
     [Header("Visual Object")]
     public Transform visualBeam;
-    public DelayActivator nextFaceActivator;
+
+    // ★★★ 升级：把这里换成了万能事件，想连什么连什么 ★★★
+    [Header("旋转结束后的事件")]
+    public UnityEvent onRotationComplete;
 
     [Header("Player Control")]
     public GameObject playerVisuals; // 玩家模型
@@ -21,15 +25,14 @@ public class Action_RotateWorld : MonoBehaviour
     public float angle = 90f;
     public float duration = 1.5f;
 
-    // ★★★ 老师添加的部分：单次锁 ★★★
+    // 老师添加的部分：单次锁
     bool isAnimPlayed = false;
 
     public void StartRotation()
     {
-        // 如果已经播过了，直接返回，不再执行
         if (isAnimPlayed) return;
 
-        isAnimPlayed = true; // 标记为已播放
+        isAnimPlayed = true;
         StartCoroutine(RotationRoutine());
     }
 
@@ -87,7 +90,7 @@ public class Action_RotateWorld : MonoBehaviour
 
         if (wideCamera) wideCamera.Priority = 0;
 
-        // 5. --- ★★★ 我们修复的：父子团圆传送 + 强制站立 ★★★ ---
+        // 5. --- ★★★ 父子团圆传送 + 强制站立 ★★★ ---
         if (targetSpawnPoint != null)
         {
             GameObject parentObj = GameManager.Instance.player;
@@ -101,7 +104,7 @@ public class Action_RotateWorld : MonoBehaviour
             // 移动父物体
             parentObj.transform.position = targetSpawnPoint.position;
 
-            // ★ 强制站立：只取 Y 轴旋转，修正躺平问题
+            // ★ 强制站立
             float targetY = targetSpawnPoint.eulerAngles.y;
             parentObj.transform.rotation = Quaternion.Euler(0, targetY, 0);
 
@@ -122,7 +125,7 @@ public class Action_RotateWorld : MonoBehaviour
             if (childCC != null) childCC.enabled = true;
             if (childRB != null) childRB.isKinematic = false;
 
-            Debug.Log("传送完成 (已加锁，无法再次触发)");
+            Debug.Log("传送完成");
         }
 
         // 6. --- Unlock ---
@@ -132,6 +135,8 @@ public class Action_RotateWorld : MonoBehaviour
         GameManager.Instance.TogglePlayerControl(true);
         GameManager.Instance.IsInteracting = false;
 
-        if (nextFaceActivator != null) nextFaceActivator.BeginTimer();
+        // ★★★ 升级：触发所有绑定的事件 ★★★
+        Debug.Log("旋转结束，触发后续逻辑...");
+        onRotationComplete?.Invoke();
     }
 }
