@@ -4,18 +4,18 @@ using Unity.Cinemachine;
 
 public class Action_RotateWorld : MonoBehaviour
 {
-    [Header("视觉对象")]
+    [Header("Visual Object")]
     public Transform visualBeam;
     public DelayActivator nextFaceActivator;
 
-    [Header("玩家控制")]
-    public GameObject playerVisuals; // 玩家的模型子物体
+    [Header("Player Control")]
+    public GameObject playerVisuals; // Player model child object
 
-    [Header("★ 关键：落地点")]
-    // 拖入你希望玩家旋转后“降落”的位置 (一个空物体)
+    [Header("★ Key: Spawn Point")]
+    // Drag in the location where you want the player to "land" after rotation (an empty object)
     public Transform targetSpawnPoint;
 
-    [Header("旋转设置")]
+    [Header("Rotation Settings")]
     public Transform worldRoot;
     public CinemachineCamera wideCamera;
     public Vector3 axis = new Vector3(1, 0, 0);
@@ -29,20 +29,20 @@ public class Action_RotateWorld : MonoBehaviour
 
     IEnumerator RotationRoutine()
     {
-        // 1. --- 锁定 & 隐身 ---
+        // 1. --- Lock & Invisible ---
         GameManager.Instance.IsInteracting = true;
         GameManager.Instance.TogglePlayerControl(false);
 
-        // 物理冻结 (防止乱动)
+        // Physics Freeze (prevent movement)
         Rigidbody rb = GameManager.Instance.player.GetComponent<Rigidbody>();
         if (rb) rb.isKinematic = true;
 
-        // 隐身 (防止穿帮)
+        // Invisible (prevent visual glitches)
         if (playerVisuals) playerVisuals.SetActive(false);
 
         if (wideCamera) wideCamera.Priority = 20;
 
-        // 2. --- 光柱消失动画 ---
+        // 2. --- Beam Disappear Animation ---
         if (visualBeam != null)
         {
             Vector3 originalScale = visualBeam.localScale;
@@ -56,9 +56,9 @@ public class Action_RotateWorld : MonoBehaviour
             visualBeam.gameObject.SetActive(false);
         }
 
-        // 3. --- 旋转世界 ---
+        // 3. --- Rotate World ---
         GameObject hinge = new GameObject("TempHinge");
-        hinge.transform.position = transform.position; // 以光柱为轴心旋转
+        hinge.transform.position = transform.position; // Rotate around the beam
         hinge.transform.rotation = Quaternion.identity;
 
         Transform originalParent = worldRoot.parent;
@@ -78,31 +78,67 @@ public class Action_RotateWorld : MonoBehaviour
         }
         hinge.transform.rotation = targetRot;
 
-        // 4. --- 还原结构 ---
+        // 4. --- Restore Structure ---
         worldRoot.SetParent(originalParent, true);
         Destroy(hinge);
 
         if (wideCamera) wideCamera.Priority = 0;
 
-        // 5. --- ★★★ 关键修正：瞬移玩家 ★★★ ---
+        // 5. --- ★★★ FIX: Father-Son Reunion Teleport + Forced Upright ★★★ ---
         if (targetSpawnPoint != null)
         {
-            // 把玩家直接搬运到新地板的安全位置
-            // 注意：要搬运 Player 最外层物体
-            GameManager.Instance.player.transform.position = targetSpawnPoint.position;
+            GameObject parentObj = GameManager.Instance.player; // Your empty parent object
 
-            // 如果你想让玩家面向特定方向，也可以设置 rotation
-            GameManager.Instance.player.transform.rotation = targetSpawnPoint.rotation;
+            // 1. Go to child object to find CharacterController (the troublemaker)
+            CharacterController childCC = parentObj.GetComponentInChildren<CharacterController>();
+            Rigidbody childRB = parentObj.GetComponentInChildren<Rigidbody>();
+
+            // 2. Disable them all (Knock them out!)
+            if (childCC != null) childCC.enabled = false;
+            if (childRB != null) childRB.isKinematic = true;
+
+            // 3. Move parent object (Dad goes first)
+            parentObj.transform.position = targetSpawnPoint.position;
+
+            // ★★★ KEY MODIFICATION HERE: FORCE UPRIGHT ★★★
+            // Only copy the Y-axis rotation (facing direction), forcing X and Z to 0.
+            // This prevents the player from "lying flat" due to the rotated landing point.
+            float targetY = targetSpawnPoint.eulerAngles.y;
+            parentObj.transform.rotation = Quaternion.Euler(0, targetY, 0);
+
+            // 4. Drag child object back to parent center
+            // If Capsule fell down, its localPosition became (0, -100, 0) etc.
+            // We reset it to zero to bring it back to dad's embrace.
+            if (childCC != null)
+            {
+                childCC.transform.localPosition = Vector3.zero;
+                childCC.transform.localRotation = Quaternion.identity;
+            }
+
+            Transform capsuleTransform = parentObj.transform.Find("PlayerCapsule");
+            if (capsuleTransform != null)
+            {
+                capsuleTransform.localPosition = Vector3.zero;
+                capsuleTransform.localRotation = Quaternion.identity;
+            }
+
+            // 5. Re-enable physics (Wake up!)
+            if (childCC != null) childCC.enabled = true;
+            if (childRB != null) childRB.isKinematic = false;
+
+            Debug.Log("Teleport Complete! Upright Position: " + targetSpawnPoint.position);
         }
 
-        // 6. --- 落地现身 ---
+        // 6. --- Land & Visible ---
         if (playerVisuals) playerVisuals.SetActive(true);
+        // Note: The variable 'rb' here refers to the Rigidbody on the Player parent object (if any),
+        // usually we manipulate 'childRB' above, but keeping this for compatibility doesn't hurt.
         if (rb) rb.isKinematic = false;
 
         GameManager.Instance.TogglePlayerControl(true);
         GameManager.Instance.IsInteracting = false;
 
-        // 激活下一个光柱
+        // Activate next beam
         if (nextFaceActivator != null) nextFaceActivator.BeginTimer();
     }
 }
