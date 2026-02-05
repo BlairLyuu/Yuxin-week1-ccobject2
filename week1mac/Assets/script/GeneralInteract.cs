@@ -20,14 +20,23 @@ public class GeneralInteract : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        // 只有在没锁定的情况下才显示 UI
+        // ★★★ 间谍代码开始 ★★★
+        Debug.Log("【Trigger测试】有东西进来了！名字叫：" + other.gameObject.name + " | 它的Tag是：" + other.tag);
+        Debug.Log("【Trigger测试】当前的交互锁状态 IsInteracting = " + GameManager.Instance.IsInteracting);
+        // ★★★ 间谍代码结束 ★★★
+
         if (other.CompareTag("Player") && !GameManager.Instance.IsInteracting)
         {
+            Debug.Log("【Trigger测试】>>> 身份验证成功！显示按E提示 <<<"); // 确认成功
             isInZone = true;
             if (promptUI) promptUI.SetActive(true);
         }
+        else
+        {
+            Debug.Log("【Trigger测试】>>> 拒绝访问！Tag不对 或 正在交互中 <<<"); // 确认失败原因
+        }
     }
-
+   
     void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
