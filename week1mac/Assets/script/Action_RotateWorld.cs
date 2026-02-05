@@ -9,11 +9,10 @@ public class Action_RotateWorld : MonoBehaviour
     public DelayActivator nextFaceActivator;
 
     [Header("Player Control")]
-    public GameObject playerVisuals; // Player model child object
+    public GameObject playerVisuals; // 玩家模型
 
     [Header("★ Key: Spawn Point")]
-    // Drag in the location where you want the player to "land" after rotation (an empty object)
-    public Transform targetSpawnPoint;
+    public Transform targetSpawnPoint; // 落脚点
 
     [Header("Rotation Settings")]
     public Transform worldRoot;
@@ -22,8 +21,15 @@ public class Action_RotateWorld : MonoBehaviour
     public float angle = 90f;
     public float duration = 1.5f;
 
+    // ★★★ 老师添加的部分：单次锁 ★★★
+    bool isAnimPlayed = false;
+
     public void StartRotation()
     {
+        // 如果已经播过了，直接返回，不再执行
+        if (isAnimPlayed) return;
+
+        isAnimPlayed = true; // 标记为已播放
         StartCoroutine(RotationRoutine());
     }
 
@@ -33,16 +39,13 @@ public class Action_RotateWorld : MonoBehaviour
         GameManager.Instance.IsInteracting = true;
         GameManager.Instance.TogglePlayerControl(false);
 
-        // Physics Freeze (prevent movement)
         Rigidbody rb = GameManager.Instance.player.GetComponent<Rigidbody>();
         if (rb) rb.isKinematic = true;
 
-        // Invisible (prevent visual glitches)
         if (playerVisuals) playerVisuals.SetActive(false);
-
         if (wideCamera) wideCamera.Priority = 20;
 
-        // 2. --- Beam Disappear Animation ---
+        // 2. --- Beam Disappear ---
         if (visualBeam != null)
         {
             Vector3 originalScale = visualBeam.localScale;
@@ -58,7 +61,7 @@ public class Action_RotateWorld : MonoBehaviour
 
         // 3. --- Rotate World ---
         GameObject hinge = new GameObject("TempHinge");
-        hinge.transform.position = transform.position; // Rotate around the beam
+        hinge.transform.position = transform.position;
         hinge.transform.rotation = Quaternion.identity;
 
         Transform originalParent = worldRoot.parent;
@@ -84,31 +87,25 @@ public class Action_RotateWorld : MonoBehaviour
 
         if (wideCamera) wideCamera.Priority = 0;
 
-        // 5. --- ★★★ FIX: Father-Son Reunion Teleport + Forced Upright ★★★ ---
+        // 5. --- ★★★ 我们修复的：父子团圆传送 + 强制站立 ★★★ ---
         if (targetSpawnPoint != null)
         {
-            GameObject parentObj = GameManager.Instance.player; // Your empty parent object
+            GameObject parentObj = GameManager.Instance.player;
 
-            // 1. Go to child object to find CharacterController (the troublemaker)
             CharacterController childCC = parentObj.GetComponentInChildren<CharacterController>();
             Rigidbody childRB = parentObj.GetComponentInChildren<Rigidbody>();
 
-            // 2. Disable them all (Knock them out!)
             if (childCC != null) childCC.enabled = false;
             if (childRB != null) childRB.isKinematic = true;
 
-            // 3. Move parent object (Dad goes first)
+            // 移动父物体
             parentObj.transform.position = targetSpawnPoint.position;
 
-            // ★★★ KEY MODIFICATION HERE: FORCE UPRIGHT ★★★
-            // Only copy the Y-axis rotation (facing direction), forcing X and Z to 0.
-            // This prevents the player from "lying flat" due to the rotated landing point.
+            // ★ 强制站立：只取 Y 轴旋转，修正躺平问题
             float targetY = targetSpawnPoint.eulerAngles.y;
             parentObj.transform.rotation = Quaternion.Euler(0, targetY, 0);
 
-            // 4. Drag child object back to parent center
-            // If Capsule fell down, its localPosition became (0, -100, 0) etc.
-            // We reset it to zero to bring it back to dad's embrace.
+            // 修正子物体位置
             if (childCC != null)
             {
                 childCC.transform.localPosition = Vector3.zero;
@@ -122,23 +119,19 @@ public class Action_RotateWorld : MonoBehaviour
                 capsuleTransform.localRotation = Quaternion.identity;
             }
 
-            // 5. Re-enable physics (Wake up!)
             if (childCC != null) childCC.enabled = true;
             if (childRB != null) childRB.isKinematic = false;
 
-            Debug.Log("Teleport Complete! Upright Position: " + targetSpawnPoint.position);
+            Debug.Log("传送完成 (已加锁，无法再次触发)");
         }
 
-        // 6. --- Land & Visible ---
+        // 6. --- Unlock ---
         if (playerVisuals) playerVisuals.SetActive(true);
-        // Note: The variable 'rb' here refers to the Rigidbody on the Player parent object (if any),
-        // usually we manipulate 'childRB' above, but keeping this for compatibility doesn't hurt.
         if (rb) rb.isKinematic = false;
 
         GameManager.Instance.TogglePlayerControl(true);
         GameManager.Instance.IsInteracting = false;
 
-        // Activate next beam
         if (nextFaceActivator != null) nextFaceActivator.BeginTimer();
     }
 }

@@ -1291,7 +1291,7 @@ MonoBehaviour:
   wideCamera: {fileID: 758968837}
   axis: {x: 0, y: 0, z: 1}
   angle: 90
-  duration: 3.34
+  duration: 3.83
 --- !u!114 &1066588595
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1305,23 +1305,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   promptUI: {fileID: 452038808}
-  autoHideAfterUse: 1
-  visualBeam: {fileID: 349869128}
-  onInteract:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1066588594}
-        m_TargetAssemblyTypeName: Action_RotateWorld, Assembly-CSharp
-        m_MethodName: StartRotation
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+  interactKey: 101
 --- !u!65 &1066588596
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2512,7 +2496,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetObject: {fileID: 1066588593}
   delayTime: 15
-  soundFX: {fileID: 0}
+  fadeDuration: 1
+  targetAlpha: 0.3
 --- !u!1 &1939166617
 GameObject:
   m_ObjectHideFlags: 0
