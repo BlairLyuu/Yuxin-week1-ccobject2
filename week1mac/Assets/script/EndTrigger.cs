@@ -3,36 +3,43 @@ using UnityEngine;
 public class EndTrigger : MonoBehaviour
 {
     [Header("设置")]
-    public GameObject endCanvas; // 拖入你的 EndCanvas
-    public bool isGameEnded = false;
+    // 这里直接拖入你的 EndPanel (或者 Canvas)
+    public GameObject endPanel;
+
+    private bool isGameEnded = false;
 
     void OnTriggerEnter(Collider other)
     {
-        // 确保只有玩家碰到且还没结束过
+        // 只有玩家能触发，且只触发一次
         if (other.CompareTag("Player") && !isGameEnded)
         {
-            ShowEndUI();
+            FinishGame();
         }
     }
 
-    void ShowEndUI()
+    void FinishGame()
     {
         isGameEnded = true;
+        Debug.Log("到达终点！");
 
-        // 1. 显示图片
-        if (endCanvas != null)
+        // 1. 打开结束界面
+        if (endPanel != null)
         {
-            endCanvas.SetActive(true);
+            endPanel.SetActive(true);
         }
 
-        // 2. 锁定玩家控制 (引用你的 GameManager)
-        GameManager.Instance.TogglePlayerControl(false);
-        GameManager.Instance.IsInteracting = true;
+        // 2. 停止玩家移动 (使用你现有的 GameManager)
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.TogglePlayerControl(false);
+            GameManager.Instance.IsInteracting = true;
+        }
 
-        // 3. 释放鼠标（方便玩家点退出，可选）
+        // 3. 彻底暂停游戏时间 (可选，防止动画继续播放)
+        Time.timeScale = 0;
+
+        // 4. 把鼠标释放出来，让玩家能点界面上的按钮
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
-
-        Debug.Log("游戏结束！");
     }
 }
