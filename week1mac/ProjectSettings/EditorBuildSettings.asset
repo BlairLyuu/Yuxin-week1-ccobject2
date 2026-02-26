@@ -17,6 +17,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/26ss2/4Hw-Mirr.unity
     guid: 5bf16d5427d9f5f4497e794c9727d3f4
+  - enabled: 1
+    path: Assets/26ss2/4Hw-Red.unity
+    guid: 065eb5dbe516b2b4b85e588fabfb7710
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
